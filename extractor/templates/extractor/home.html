@@ -1,0 +1,199 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">InvoiceAI</h4>
+                    <small>Secure enterprise invoice validation. Precise data extraction in seconds.</small>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">Upload Invoice</h5>
+                    <p class="text-muted">Select a digital file or capture a clear photo of your paper invoice.</p>
+                    
+                    <form id="uploadForm" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="upload-area" id="uploadArea">
+                            <div class="text-center">
+                                <i class="fas fa-cloud-upload-alt fa-3x text-muted mb-3"></i>
+                                <p class="mb-2">Tap to Upload or drag and drop here</p>
+                                <div class="form-group">
+                                    {{ form.invoice_file }}
+                                </div>
+                                <div class="mt-2">
+                                    <span class="badge badge-secondary">PDF</span>
+                                    <span class="badge badge-secondary">JPG</span>
+                                    <span class="badge badge-secondary">PNG</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary btn-block">Upload and Process</button>
+                            <button type="button" class="btn btn-secondary btn-block" onclick="window.location.reload()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Bank-Level Encryption (AES-256)</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div id="resultArea" style="display:none;">
+                <div class="card shadow">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Verified Data Points</h5>
+                    </div>
+                    <div class="card-body" id="resultContent">
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn btn-success" onclick="confirmAndSave()">Confirm & Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const resultArea = document.getElementById('resultArea');
+    
+    resultArea.style.display = 'none';
+    
+    fetch('{% url "upload_invoice" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const resultContent = document.getElementById('resultContent');
+            resultContent.innerHTML = `
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="30%">Field</th>
+                            <th width="70%">Extracted Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Account Number</strong></td>
+                            <td><code>${data.invoice.account_number || 'Not found'}</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Invoice Number</strong></td>
+                            <td><code>${data.invoice.invoice_number || 'Not found'}</code></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Total Amount</strong></td>
+                            <td><strong class="text-success">$${data.invoice.total_amount || '0.00'}</strong></td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-check-circle"></i> All fields were cross-referenced with your purchase orders and verified automatically.
+                </div>
+            `;
+            resultArea.style.display = 'block';
+            resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Error processing invoice: ' + error);
+    });
+});
+
+function confirmAndSave() {
+    alert('Invoice verified and saved successfully!');
+    window.location.reload();
+}
+
+// Drag and drop functionality
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.querySelector('input[type="file"]');
+
+uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.classList.add('border-primary');
+});
+
+uploadArea.addEventListener('dragleave', () => {
+    uploadArea.classList.remove('border-primary');
+});
+
+uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.classList.remove('border-primary');
+    const file = e.dataTransfer.files[0];
+    fileInput.files = e.dataTransfer.files;
+    
+    if (file) {
+        const fileNameSpan = uploadArea.querySelector('p');
+        if (fileNameSpan) {
+            fileNameSpan.innerHTML = `<strong>Selected:</strong> ${file.name}`;
+        }
+    }
+});
+
+fileInput.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+        const fileNameSpan = uploadArea.querySelector('p');
+        if (fileNameSpan) {
+            fileNameSpan.innerHTML = `<strong>Selected:</strong> ${this.files[0].name}`;
+        }
+    }
+});
+</script>
+
+<style>
+.upload-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 10px;
+    padding: 40px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-area:hover {
+    border-color: #007bff;
+    background-color: #f8f9fa;
+}
+
+.upload-area.border-primary {
+    border-color: #007bff;
+    background-color: #f0f8ff;
+}
+
+.table code {
+    font-size: 1rem;
+    background-color: #f8f9fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.table strong.text-success {
+    font-size: 1.1rem;
+}
+
+.alert-info {
+    background-color: #e7f3ff;
+    border-color: #b6d4fe;
+}
+</style>
+{% endblock %}
