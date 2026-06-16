@@ -34,7 +34,7 @@ class InvoiceOCRProcessor:
             # Convert all PDF pages to images (300 DPI for better OCR quality)
             images = convert_from_path(
                 pdf_path, 
-                dpi=300,
+                dpi=100,
                 fmt='png'
             )
             
