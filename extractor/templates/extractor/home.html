@@ -31,7 +31,13 @@
                             </div>
                         </div>
                         <div class="mt-3">
-                            <button type="submit" class="btn btn-primary btn-block">Upload and Process</button>
+                            <button type="submit" class="btn btn-primary btn-block" id="processBtn">
+                                <span id="btnText">Upload and Process</span>
+                                <span id="processingSpinner" style="display: none;">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    Processing...
+                                </span>
+                            </button>
                             <button type="button" class="btn btn-secondary btn-block" onclick="window.location.reload()">Cancel</button>
                         </div>
                     </form>
@@ -65,6 +71,11 @@
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    // Show processing indicator
+    document.getElementById('btnText').style.display = 'none';
+    document.getElementById('processingSpinner').style.display = 'inline-block';
+    document.getElementById('processBtn').disabled = true;
+    
     const formData = new FormData(this);
     const resultArea = document.getElementById('resultArea');
     
@@ -79,6 +90,11 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
     })
     .then(response => response.json())
     .then(data => {
+        // Hide processing indicator
+        document.getElementById('btnText').style.display = 'inline';
+        document.getElementById('processingSpinner').style.display = 'none';
+        document.getElementById('processBtn').disabled = false;
+        
         if (data.success) {
             const resultContent = document.getElementById('resultContent');
             resultContent.innerHTML = `
@@ -115,6 +131,11 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
         }
     })
     .catch(error => {
+        // Hide processing indicator
+        document.getElementById('btnText').style.display = 'inline';
+        document.getElementById('processingSpinner').style.display = 'none';
+        document.getElementById('processBtn').disabled = false;
+        
         alert('Error processing invoice: ' + error);
     });
 });
@@ -194,6 +215,24 @@ fileInput.addEventListener('change', function() {
 .alert-info {
     background-color: #e7f3ff;
     border-color: #b6d4fe;
+}
+
+/* Processing indicator styles */
+#processingSpinner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.spinner-border {
+    width: 1.2rem;
+    height: 1.2rem;
+    border-width: 0.15em;
+}
+
+#processBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
 }
 </style>
 {% endblock %}
