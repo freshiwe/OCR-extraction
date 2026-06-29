@@ -76,36 +76,53 @@ class AWSInvoiceProcessor:
         try:
             # Prepare the prompt
             prompt = f"""
-You are an expert invoice data extraction system. Extract the following fields from this invoice text.
+You are an expert multilingual invoice data extraction system. Extract the following fields from the invoice text below.
 
-FIELD DEFINITIONS:
-1. account_number: This can appear as ANY of these labels:
-   - Account Number, Account No, Acct No, Acct #, Account ID, Customer ID
-   - Customer Account, Client ID, Member ID, User ID
-   - Account Reference, Account Code, Account Identifier
-   
-   Look for alphanumeric patterns typically 5-20 characters (may contain hyphens, slashes, or spaces)
+FIELD DEFINITIONS (recognize these in ANY language or format):
 
-2. invoice_number: Any of these labels:
-   - Invoice Number, Invoice No, Inv #, Invoice ID, Bill Number
-   - Reference Number, Document Number, Order Number
-   - Look for patterns like INV-12345, DOC-67890, or alphanumeric sequences
+1. account_number: Any identifier for the customer/buyer or vendor/seller
+   - Look for: account, customer, client, member, user, vendor, merchant, subscriber, policy, membership
+   - Common labels: Account #, Customer ID, Client Code, Member No, User ID, Vendor Code
+   - In other languages: 账户号码, 顧客番号, cuenta, compte, konto, حساب, खाता
+   - Can be alphanumeric, 4-25 characters, may contain hyphens or slashes
+   - Often appears near customer/vendor information section
 
-3. total_amount: The final amount due. Look for:
-   - Total, Grand Total, Amount Due, Balance Due
-   - Total Amount, Invoice Total, Net Amount
-   - Usually the largest amount or at the bottom of the invoice
-   - May include currency symbols ($, Euro, Pound) or codes (USD, EUR)
+2. invoice_number: Any unique identifier for this bill
+   - Look for: invoice, bill, receipt, statement, document, reference, order, purchase order
+   - Common labels: Invoice #, Bill No, Receipt #, Doc ID, Ref No, PO Number
+   - In other languages: 发票号码, 請求書番号, factura, fattura, rechnung, فاتورة, ಬಿಲ್
+   - Often starts with prefixes like INV-, BILL-, DOC-, REF-, PO-
+   - Usually 5-20 characters, alphanumeric
 
-RULES:
-- Extract the most likely value for each field
-- Return ONLY valid JSON with these exact keys
-- If a field is not found, set to null
-- For amounts, return as a number (without currency symbols)
-- Be thorough - search the entire text for these fields
+3. total_amount: The final amount to be paid
+   - Look for: total, grand total, amount due, balance due, net amount, sum, payment due
+   - In other languages: 总计, 合計, total, montant, totale, gesamt, المجموع, ಕೂಡು
+   - Usually found at the bottom, in a summary section, or highlighted
+   - Often the largest number on the invoice
+   - May be preceded by currency symbols ($, €, £, ¥, ₦, ₹, etc.)
+   - May use currency codes (USD, EUR, GBP, NGN, INR, JPY, etc.)
+   - May have decimals (both . and , as decimal separators)
+   - May have thousand separators (commas, spaces, or dots)
 
-INVOICE TEXT:
-{raw_text[:10000]}
+GENERAL RULES:
+- Work with ANY language - English, Spanish, French, German, Chinese, Japanese, Arabic, Hindi, etc.
+- Work with ANY currency - USD, EUR, GBP, NGN, INR, JPY, and many more
+- Work with ANY date format - MM/DD/YYYY, DD/MM/YYYY, YYYY-MM-DD, etc.
+- Be flexible with label variations, abbreviations, and translations
+- Search the ENTIRE text, don't assume positions
+- If you see a field labeled differently, use your understanding of invoice structure
+- Use contextual clues - amounts near "total" are likely the total amount
+- If multiple values appear, choose the most logical one
+
+IMPORTANT:
+- Return ONLY valid JSON with these exact keys: account_number, invoice_number, total_amount
+- If a field is not found with reasonable confidence, set to null
+- For total_amount, return as a number (e.g., 1234.56) without currency symbols
+- For account_number and invoice_number, return as strings
+
+
+Invoice Text:
+{raw_text[:15000]}
 
 Return JSON in this exact format:
 {{
